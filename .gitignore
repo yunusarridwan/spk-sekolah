@@ -1,5 +1,5 @@
 # Folder dependensi Composer
-/vendor/
+vendor/
 
 # Pengaturan editor VS Code
-/.vscode/
+.vscode/
