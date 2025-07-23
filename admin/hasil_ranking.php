@@ -3,130 +3,119 @@ session_start();
 require_once '../config.php'; // Pastikan path ini benar
 
 // --- Definisi Kriteria SAW Tetap (Konstanta) ---
-// Menggunakan array asosiatif dengan ID kriteria sebagai kunci dan properti lainnya
-// Bobot harus selalu berjumlah 1.0
 const KRITERIA_SAW = [
-    1 => ['nama_kriteria' => 'Akreditasi', 'bobot' => 0.25, 'tipe' => 'benefit', 'options' => ['A' => 4, 'B' => 3, 'C' => 2]], // Bobot diubah menjadi 0.25
-    2 => ['nama_kriteria' => 'Biaya SPP', 'bobot' => 0.30, 'tipe' => 'cost'], // Bobot diubah menjadi 0.30
-    3 => ['nama_kriteria' => 'Fasilitas', 'bobot' => 0.15, 'tipe' => 'benefit'], // Bobot diubah menjadi 0.15
-    4 => ['nama_kriteria' => 'Jarak Sekolah dengan Jalan Raya', 'bobot' => 0.10, 'tipe' => 'cost'], // Bobot diubah menjadi 0.10
-    5 => ['nama_kriteria' => 'Program Unggulan', 'bobot' => 0.20, 'tipe' => 'benefit'], // Bobot tetap 0.20
+    1 => ['nama_kriteria' => 'Akreditasi', 'bobot' => 0.25, 'tipe' => 'benefit', 'options' => ['A' => 4, 'B' => 3, 'C' => 2]],
+    2 => ['nama_kriteria' => 'Biaya SPP', 'bobot' => 0.30, 'tipe' => 'cost'],
+    3 => ['nama_kriteria' => 'Fasilitas', 'bobot' => 0.15, 'tipe' => 'benefit'],
+    4 => ['nama_kriteria' => 'Jarak Sekolah dengan Jalan Raya', 'bobot' => 0.10, 'tipe' => 'cost'],
+    5 => ['nama_kriteria' => 'Program Unggulan', 'bobot' => 0.20, 'tipe' => 'benefit'],
 ];
 
-// --- Fungsi Pembantu untuk Mengambil Data ---
+// --- Fungsi Pembantu untuk Mengambil Data (Disesuaikan) ---
 /**
- * Fetches all school data from the database.
- * @param mysqli $koneksi Database connection object.
- * @return array Associative array of school data, keyed by id_sekolah.
+ * Mengambil data gabungan dari tabel sekolah dan kriteria secara eksplisit.
+ * @param mysqli $koneksi Objek koneksi database.
+ * @return array Data gabungan sekolah dan kriteria, diindeks berdasarkan id_sekolah.
  */
-function getSekolahData(mysqli $koneksi): array
+function getSekolahDanKriteriaData(mysqli $koneksi): array
 {
-    $sekolah_data = [];
-    $query = mysqli_query($koneksi, "SELECT * FROM sekolah");
+    $data_lengkap = [];
+    // REKOMENDASI: Query dibuat lebih eksplisit, hanya mengambil kolom yang dibutuhkan.
+    $sql = "SELECT
+                s.id_sekolah, s.nama_sekolah, s.alamat, s.total_guru, s.total_murid_aktif,
+                k.akreditasi, k.biaya_spp, k.total_fasilitas, k.jarak_jalan_raya, k.nilai_program_unggulan
+            FROM
+                sekolah s
+            LEFT JOIN
+                kriteria k ON s.id_sekolah = k.id_sekolah";
+    
+    $query = mysqli_query($koneksi, $sql);
     if ($query) {
         while ($row = mysqli_fetch_assoc($query)) {
-            $sekolah_data[$row['id_sekolah']] = $row;
+            $data_lengkap[$row['id_sekolah']] = $row;
         }
     } else {
-        error_log("Error fetching sekolah data: " . mysqli_error($koneksi));
+        error_log("Error fetching combined school and criteria data: " . mysqli_error($koneksi));
     }
-    return $sekolah_data;
+    return $data_lengkap;
 }
 
-/**
- * Fetches all assessment data (penilaian) from the database.
- * @param mysqli $koneksi Database connection object.
- * @return array Associative array of assessment data, keyed by id_sekolah then id_kriteria.
- */
-function getPenilaianData(mysqli $koneksi): array
-{
-    $penilaian_data = [];
-    $query = mysqli_query($koneksi, "SELECT id_sekolah, id_kriteria, nilai FROM penilaian");
-    if ($query) {
-        while ($row = mysqli_fetch_assoc($query)) {
-            $penilaian_data[$row['id_sekolah']][$row['id_kriteria']] = $row['nilai'];
-        }
-    } else {
-        error_log("Error fetching penilaian data: " . mysqli_error($koneksi));
-    }
-    return $penilaian_data;
-}
 
-// --- Fungsi Perhitungan SAW ---
 /**
- * Performs the SAW (Simple Additive Weighting) calculation.
- * @param array $sekolah_data All school data.
- * @param array $penilaian_data All assessment scores.
- * @param array $kriteria_saw Fixed criteria definitions.
- * @return array Ranked results along with intermediate calculation steps.
+ * Melakukan perhitungan SAW (Simple Additive Weighting).
+ * @param array $data_lengkap Data gabungan sekolah dan kriteria.
+ * @param array $kriteria_saw Definisi kriteria tetap.
+ * @return array Hasil perankingan beserta langkah-langkah perhitungan.
  */
-function calculateSAWRanking(array $sekolah_data, array $penilaian_data, array $kriteria_saw): array
+function calculateSAWRanking(array $data_lengkap, array $kriteria_saw): array
 {
-    if (empty($sekolah_data) || empty($penilaian_data)) {
-        return ['ranking' => [], 'normalisasi' => [], 'terbobot' => [], 'data_asli' => $penilaian_data]; // Return empty if no data
+    // JIKA DATA KOSONG
+    if (empty($data_lengkap)) {
+        // SOLUSI: Tambahkan 'kriteria' ke dalam array yang dikembalikan
+        // agar strukturnya konsisten dan tidak menyebabkan error.
+        return [
+            'ranking' => [], 
+            'normalisasi' => [], 
+            'terbobot' => [], 
+            'data_asli' => [], 
+            'kriteria' => $kriteria_saw
+        ];
     }
 
     $normalized_scores = [];
     $weighted_normalized_scores = [];
     $max_min_values = [];
-    $original_matrix = []; // To store original valid values
+    $original_matrix = [];
 
-    // Populate original_matrix
-    foreach ($sekolah_data as $id_sekolah => $s_data) {
-        foreach ($kriteria_saw as $id_kriteria => $kriteria_info) {
-            $original_matrix[$id_sekolah][$id_kriteria] = $penilaian_data[$id_sekolah][$id_kriteria] ?? 0;
-        }
+    // Langkah 1: Ubah data ke dalam format matriks dan konversi nilai Akreditasi
+    foreach ($data_lengkap as $id_sekolah => $data) {
+        // Konversi nilai akreditasi (A, B, C) ke numerik
+        $akreditasi_char = $data['akreditasi'] ?? null;
+        $akreditasi_numeric = isset($kriteria_saw[1]['options'][$akreditasi_char]) ? $kriteria_saw[1]['options'][$akreditasi_char] : 0;
+
+        $original_matrix[$id_sekolah] = [
+            1 => $akreditasi_numeric,
+            2 => (float)($data['biaya_spp'] ?? 0),
+            3 => (float)($data['total_fasilitas'] ?? 0),
+            4 => (float)($data['jarak_jalan_raya'] ?? 0),
+            5 => (float)($data['nilai_program_unggulan'] ?? 0),
+        ];
     }
 
-    // Step 1: Find Max/Min values for each criterion
+    // Langkah 2: Cari nilai Max/Min untuk setiap kriteria
     foreach ($kriteria_saw as $id_kriteria => $kriteria_info) {
-        $tipe = $kriteria_info['tipe'];
-        if ($tipe === 'benefit') {
-            $max_min_values[$id_kriteria] = -INF; // Max for benefit
-        } else { // 'cost'
-            $max_min_values[$id_kriteria] = INF; // Min for cost
-        }
+        $column_values = array_column($original_matrix, $id_kriteria);
+        if (empty($column_values)) continue; // Lanjut jika tidak ada data
 
-        foreach ($sekolah_data as $id_sekolah => $s_data) {
-            if (isset($penilaian_data[$id_sekolah][$id_kriteria])) {
-                $nilai = (float) $penilaian_data[$id_sekolah][$id_kriteria]; // Pastikan nilai adalah float
-                if ($tipe === 'benefit') {
-                    $max_min_values[$id_kriteria] = max($max_min_values[$id_kriteria], $nilai);
-                } else {
-                    $max_min_values[$id_kriteria] = min($max_min_values[$id_kriteria], $nilai);
-                }
-            }
+        if ($kriteria_info['tipe'] === 'benefit') {
+            $max_min_values[$id_kriteria] = max($column_values);
+        } else { // 'cost'
+            // Untuk cost, cari nilai minimum yang bukan nol
+            $non_zero_values = array_filter($column_values, function($val) { return $val > 0; });
+            $max_min_values[$id_kriteria] = !empty($non_zero_values) ? min($non_zero_values) : 0;
         }
     }
 
-    // Step 2: Normalization
-    foreach ($sekolah_data as $id_sekolah => $s_data) {
-        $normalized_scores[$id_sekolah] = [];
+    // Langkah 3: Normalisasi
+    foreach ($original_matrix as $id_sekolah => $scores) {
         foreach ($kriteria_saw as $id_kriteria => $kriteria_info) {
-            $nilai = (float) ($penilaian_data[$id_sekolah][$id_kriteria] ?? 0); // Default to 0 if no score
-            $tipe = $kriteria_info['tipe'];
-            $max_min_val = $max_min_values[$id_kriteria];
+            $nilai = $scores[$id_kriteria];
+            $max_min_val = $max_min_values[$id_kriteria] ?? 0;
 
-            if ($max_min_val == 0) { // Avoid division by zero, result is 0 if max_min_val is 0
+            if ($max_min_val == 0) {
                 $normalized_scores[$id_sekolah][$id_kriteria] = 0;
-            } elseif ($tipe === 'benefit') {
+            } elseif ($kriteria_info['tipe'] === 'benefit') {
                 $normalized_scores[$id_sekolah][$id_kriteria] = $nilai / $max_min_val;
             } else { // 'cost'
-                // Handle case where original value is 0 (or very small) for 'cost' type
-                if ($nilai == 0) {
-                     $normalized_scores[$id_sekolah][$id_kriteria] = 0; // Or some other handling
-                } else {
-                    $normalized_scores[$id_sekolah][$id_kriteria] = $max_min_val / $nilai;
-                }
+                $normalized_scores[$id_sekolah][$id_kriteria] = ($nilai > 0) ? $max_min_val / $nilai : 0;
             }
         }
     }
 
-    // Step 3: Weighted Sum
+    // Langkah 4: Perhitungan Skor Total (Penjumlahan Terbobot)
     $ranking_results = [];
-    foreach ($sekolah_data as $id_sekolah => $s_data) {
+    foreach ($data_lengkap as $id_sekolah => $data) {
         $total_skor = 0;
-        $weighted_normalized_scores[$id_sekolah] = [];
         foreach ($kriteria_saw as $id_kriteria => $kriteria_info) {
             $bobot = $kriteria_info['bobot'];
             $normalized_val = $normalized_scores[$id_sekolah][$id_kriteria];
@@ -136,61 +125,58 @@ function calculateSAWRanking(array $sekolah_data, array $penilaian_data, array $
         }
         $ranking_results[$id_sekolah] = [
             'total_skor' => $total_skor,
-            'sekolah_data' => $s_data,
-            'normalized_scores' => $normalized_scores[$id_sekolah], // Tambahkan untuk detail modal
-            'original_scores' => $original_matrix[$id_sekolah], // Add original scores for detail modal
+            'sekolah_data' => $data,
+            'normalized_scores' => $normalized_scores[$id_sekolah],
+            'original_scores' => $original_matrix[$id_sekolah],
         ];
     }
 
-    // Step 4: Sort and Rank
-    uasort($ranking_results, function($a, $b) {
+    // Langkah 5: Urutkan hasil berdasarkan skor total
+    uasort($ranking_results, function ($a, $b) {
         return $b['total_skor'] <=> $a['total_skor'];
     });
 
     $rank = 1;
-    foreach ($ranking_results as $id_sekolah => $data) {
-        $ranking_results[$id_sekolah]['peringkat'] = $rank++;
+    foreach ($ranking_results as $id_sekolah => &$data) {
+        $data['peringkat'] = $rank++;
     }
 
     return [
         'ranking' => $ranking_results,
         'normalisasi' => $normalized_scores,
         'terbobot' => $weighted_normalized_scores,
-        'data_asli' => $original_matrix, // Penilaian asli
-        'kriteria' => $kriteria_saw // Pass criteria info for table headers
+        'data_asli' => $original_matrix,
+        'kriteria' => $kriteria_saw
     ];
 }
 
 // --- Eksekusi Utama ---
 if (isset($koneksi) && $koneksi) {
-    $sekolah_data = getSekolahData($koneksi);
-    $penilaian_data_raw = getPenilaianData($koneksi); // Raw data for processing
-
-    // Convert Akreditasi to numeric value before SAW calculation
-    foreach ($penilaian_data_raw as $id_sekolah => $criteria_scores) {
-        if (isset($criteria_scores[1]) && isset(KRITERIA_SAW[1]['options'][$criteria_scores[1]])) {
-            $penilaian_data_raw[$id_sekolah][1] = KRITERIA_SAW[1]['options'][$criteria_scores[1]];
-        }
-    }
-
-    $saw_results = calculateSAWRanking($sekolah_data, $penilaian_data_raw, KRITERIA_SAW);
+    // Ambil semua data dalam satu fungsi
+    $data_lengkap_sekolah = getSekolahDanKriteriaData($koneksi);
+    
+    // Lakukan perhitungan SAW
+    $saw_results = calculateSAWRanking($data_lengkap_sekolah, KRITERIA_SAW);
+    
+    // Ekstrak hasil untuk ditampilkan
     $ranking_results = $saw_results['ranking'];
     $normalisasi_matrix = $saw_results['normalisasi'];
     $terbobot_matrix = $saw_results['terbobot'];
-    $original_data_matrix = $saw_results['data_asli']; // Use the original matrix from the calculation function
-    $kriteria_for_tables = $saw_results['kriteria']; // Kriteria details for table headers
+    $original_data_matrix = $saw_results['data_asli'];
+    $kriteria_for_tables = $saw_results['kriteria'];
 } else {
+    // Fallback jika koneksi gagal
     $ranking_results = [];
     $normalisasi_matrix = [];
     $terbobot_matrix = [];
     $original_data_matrix = [];
-    $kriteria_for_tables = KRITERIA_SAW; // Fallback for displaying headers
+    $kriteria_for_tables = KRITERIA_SAW;
     error_log("Database connection failed in hasil_ranking.php");
 }
 
 $total_sekolah_dinilai = count($ranking_results);
 
-// --- Data untuk Ikon Kriteria (UI) ---
+// Data untuk Ikon Kriteria (UI)
 $criterion_icons = [
     'Akreditasi' => 'fas fa-award',
     'Biaya SPP' => 'fas fa-money-bill-wave',
@@ -650,7 +636,7 @@ $criterion_icons = [
                                                                     <div class="progress-bar bg-primary fw-bold" role="progressbar"
                                                                          style="width: <?php echo ($result['total_skor'] * 100); ?>%"
                                                                          aria-valuenow="<?php echo htmlspecialchars($result['total_skor']); ?>"
-                                                                                                aria-valuemin="0" aria-valuemax="1">
+                                                                         aria-valuemin="0" aria-valuemax="1">
                                                                         <?php echo number_format($result['total_skor'], 4); ?>
                                                                     </div>
                                                                 </div>
@@ -887,8 +873,8 @@ $criterion_icons = [
         </div>
     </div>
     <?php
-     require_once '../admin/footer.php';
-     ?>
+      require_once '../admin/footer.php';
+      ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.getElementById('printBtn').addEventListener('click', function() {

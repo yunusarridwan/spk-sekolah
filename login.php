@@ -4,32 +4,57 @@ require_once 'config.php';
 
 // Redirect jika sudah login sebagai admin
 if (isset($_SESSION['user_id'])) {
-    header("Location: admin/dashboard.php?login=success");
+    header("Location: admin/dashboard.php");
     exit();
 }
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = mysqli_real_escape_string($koneksi, $_POST['username']);
-    $password = $_POST['password']; // Ambil password mentah
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
-    $query = "SELECT id, username, password FROM users WHERE username = '$username'";
-    $result = mysqli_query($koneksi, $query);
+    // PENYESUAIAN: Menggunakan Prepared Statement untuk mencegah SQL Injection.
+    // Ini adalah cara yang paling direkomendasikan untuk berinteraksi dengan database.
+    // Nama tabel disesuaikan menjadi 'admin' dan kolom menjadi 'id_admin' sesuai ERD.
+    $sql = "SELECT id_admin, username, password FROM admin WHERE username = ?";
+    
+    $stmt = mysqli_prepare($koneksi, $sql);
 
-    if (mysqli_num_rows($result) == 1) {
-        $user = mysqli_fetch_assoc($result);
-        // Verifikasi password menggunakan password_verify()
-        if (password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            header("Location: admin/dashboard.php?login=success");
-            exit();
+    if ($stmt) {
+        // 's' berarti variabel $username akan diperlakukan sebagai string.
+        mysqli_stmt_bind_param($stmt, "s", $username);
+        
+        // Eksekusi statement yang sudah disiapkan.
+        mysqli_stmt_execute($stmt);
+        
+        // Ambil hasil query.
+        $result = mysqli_stmt_get_result($stmt);
+
+        if (mysqli_num_rows($result) == 1) {
+            $user = mysqli_fetch_assoc($result);
+            
+            // Verifikasi password (logika ini sudah benar dan aman).
+            if (password_verify($password, $user['password'])) {
+                // Set session
+                $_SESSION['user_id'] = $user['id_admin'];
+                $_SESSION['username'] = $user['username'];
+                
+                // Redirect ke dashboard
+                header("Location: admin/dashboard.php?login=success");
+                exit();
+            } else {
+                $error = "Username atau password salah!";
+            }
         } else {
             $error = "Username atau password salah!";
         }
+        
+        mysqli_stmt_close($stmt);
     } else {
-        $error = "Username atau password salah!";
+        // Gagal mempersiapkan statement, bisa jadi ada error di query SQL.
+        $error = "Terjadi kesalahan pada sistem. Silakan coba lagi nanti.";
+        // Untuk debugging: error_log(mysqli_error($koneksi));
     }
 }
 ?>

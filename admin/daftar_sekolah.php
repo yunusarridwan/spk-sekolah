@@ -15,14 +15,14 @@ if (isset($_GET['hapus'])) {
 
     mysqli_begin_transaction($koneksi);
     try {
-        // Hapus penilaian terkait
-        mysqli_query($koneksi, "DELETE FROM penilaian WHERE id_sekolah = $id_sekolah");
-
-        // Hapus sekolah
+        // 1. Hapus data kriteria yang terkait terlebih dahulu
+        mysqli_query($koneksi, "DELETE FROM kriteria WHERE id_sekolah = $id_sekolah");
+        
+        // 2. Baru hapus data sekolah
         mysqli_query($koneksi, "DELETE FROM sekolah WHERE id_sekolah = $id_sekolah");
 
         mysqli_commit($koneksi);
-        $_SESSION['pesan'] = "Sekolah berhasil dihapus!";
+        $_SESSION['pesan'] = "Sekolah dan data kriteria terkait berhasil dihapus!";
     } catch (Exception $e) {
         mysqli_rollback($koneksi);
         $_SESSION['error'] = "Gagal menghapus sekolah: " . $e->getMessage();
@@ -33,21 +33,20 @@ if (isset($_GET['hapus'])) {
 
 // Ambil daftar sekolah
 $search_query = "";
+// Query dasar yang menggabungkan tabel sekolah dan kriteria
+$base_sql = "SELECT s.*, k.akreditasi, k.biaya_spp, k.total_fasilitas, k.jarak_jalan_raya, k.nilai_program_unggulan 
+             FROM sekolah s
+             LEFT JOIN kriteria k ON s.id_sekolah = k.id_sekolah";
+
 if (isset($_GET['search']) && !empty($_GET['search'])) {
     $search_query = mysqli_real_escape_string($koneksi, $_GET['search']);
-    $sekolah_sql = "SELECT * FROM sekolah WHERE nama_sekolah LIKE '%$search_query%' OR alamat LIKE '%$search_query%' ORDER BY nama_sekolah ASC";
+    // Tambahkan kondisi WHERE untuk pencarian
+    $sekolah_sql = $base_sql . " WHERE s.nama_sekolah LIKE '%$search_query%' OR s.alamat LIKE '%$search_query%' ORDER BY s.nama_sekolah ASC";
 } else {
-    $sekolah_sql = "SELECT * FROM sekolah ORDER BY nama_sekolah ASC";
+    // Gunakan query dasar tanpa filter
+    $sekolah_sql = $base_sql . " ORDER BY s.nama_sekolah ASC";
 }
 $sekolah = mysqli_query($koneksi, $sekolah_sql);
-
-
-// Ambil semua penilaian untuk ditampilkan (opsional, bisa juga diambil per sekolah di loop)
-$all_penilaian_query = mysqli_query($koneksi, "SELECT id_sekolah, id_kriteria, nilai FROM penilaian");
-$all_penilaian_data = [];
-while($row = mysqli_fetch_assoc($all_penilaian_query)) {
-    $all_penilaian_data[$row['id_sekolah']][$row['id_kriteria']] = $row['nilai'];
-}
 
 // Define fixed criteria details for display (matching spk.sql and other PHP files)
 $fixed_kriteria_details = [
@@ -75,20 +74,17 @@ $fixed_kriteria_details = [
             --text-secondary: #858796;
             --border-color: #e3e6f0;
         }
-
         body {
             background-color: var(--secondary-color);
             color: var(--text-primary);
             font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
-
         .card {
             border: none;
             border-radius: 10px;
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
             margin-bottom: 20px;
         }
-
         .card-header {
             background-color: white;
             border-bottom: 1px solid var(--border-color);
@@ -101,16 +97,13 @@ $fixed_kriteria_details = [
             justify-content: space-between;
             align-items: center;
         }
-        
         .table-responsive {
             border-radius: 10px;
             overflow-x: auto;
         }
-
         .table {
             margin-bottom: 0;
         }
-
         .table thead th {
             font-weight: 600;
             background-color: var(--secondary-color);
@@ -119,34 +112,28 @@ $fixed_kriteria_details = [
             padding: 1rem 0.75rem;
             white-space: nowrap;
         }
-
         .table tbody td {
             vertical-align: middle;
             padding: 0.75rem;
             white-space: nowrap;
         }
-
         .table-hover tbody tr:hover {
             background-color: rgba(78, 115, 223, 0.05);
         }
-
         .action-buttons a {
             margin-right: 0.25rem;
-            margin-bottom: 0.25rem; /* For responsive stacking */
+            margin-bottom: 0.25rem;
         }
         .action-buttons .btn {
             font-size: 0.875rem;
             padding: 0.45rem 0.75rem;
         }
-
         .badge-akreditasi {
             padding: 0.5em 0.7em;
             border-radius: 0.35rem;
             font-weight: 600;
             font-size: 0.75rem;
         }
-
-        /* Responsive adjustments */
         @media (max-width: 768px) {
             .table thead th, .table tbody td {
                 padding: 0.5rem;
@@ -158,7 +145,7 @@ $fixed_kriteria_details = [
                 justify-content: center;
             }
             .action-buttons a {
-                flex: 1 0 auto; /* Allow buttons to grow and wrap */
+                flex: 1 0 auto;
                 margin: 0.1rem;
             }
             .card-header {
@@ -231,8 +218,6 @@ $fixed_kriteria_details = [
                             if (mysqli_num_rows($sekolah) > 0) {
                                 $no = 1;
                                 while ($row = mysqli_fetch_assoc($sekolah)) {
-                                    $id_sekolah_current = $row['id_sekolah'];
-
                                     $akreditasi_label = $row['akreditasi'];
                                     $badge_color = '';
                                     if($akreditasi_label == 'A') $badge_color = 'success';
@@ -252,7 +237,7 @@ $fixed_kriteria_details = [
                                     <td class="text-center"><?php echo htmlspecialchars($row['total_guru']); ?></td>
                                     <td class="text-center"><?php echo htmlspecialchars($row['total_murid_aktif']); ?></td>
                                     <td>Rp <?php echo htmlspecialchars(number_format($row['biaya_spp'], 0, ',', '.')); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['fasilitas']); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['total_fasilitas']); ?></td>
                                     <td class="text-center">
                                         <?php
                                         $jarak_km = $row['jarak_jalan_raya'];
@@ -260,12 +245,11 @@ $fixed_kriteria_details = [
                                             $jarak_meter = $jarak_km * 1000;
                                             echo htmlspecialchars(number_format($jarak_meter, 0)) . " Meter";
                                         } else {
-                                            // Perubahan ada di baris ini, dari 2 menjadi 3 desimal
                                             echo htmlspecialchars(number_format($jarak_km, 3)) . " KM";
                                         }
                                         ?>
                                     </td>
-                                    <td class="text-center"><?php echo htmlspecialchars(number_format($row['program_unggulan'], 2)); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars(number_format($row['nilai_program_unggulan'], 2)); ?></td>
                                     <td class="action-buttons text-center">
                                         <a href="edit_sekolah.php?id=<?php echo $row['id_sekolah']; ?>" class="btn btn-warning btn-sm" title="Edit">
                                             <i class="fas fa-edit"></i> <span class="d-none d-md-inline">Edit</span>
@@ -300,8 +284,8 @@ $fixed_kriteria_details = [
         </div>
     </div>
     <?php
-     require_once 'footer.php';
-     ?>
+      require_once 'footer.php';
+      ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Auto-hide alerts after 5 seconds
