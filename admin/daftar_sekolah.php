@@ -17,7 +17,7 @@ if (isset($_GET['hapus'])) {
     try {
         // 1. Hapus data kriteria yang terkait terlebih dahulu
         mysqli_query($koneksi, "DELETE FROM kriteria WHERE id_sekolah = $id_sekolah");
-        
+
         // 2. Baru hapus data sekolah
         mysqli_query($koneksi, "DELETE FROM sekolah WHERE id_sekolah = $id_sekolah");
 
@@ -60,6 +60,7 @@ $fixed_kriteria_details = [
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Daftar Sekolah</title>
@@ -74,17 +75,20 @@ $fixed_kriteria_details = [
             --text-secondary: #858796;
             --border-color: #e3e6f0;
         }
+
         body {
             background-color: var(--secondary-color);
             color: var(--text-primary);
             font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
+
         .card {
             border: none;
             border-radius: 10px;
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
             margin-bottom: 20px;
         }
+
         .card-header {
             background-color: white;
             border-bottom: 1px solid var(--border-color);
@@ -97,13 +101,16 @@ $fixed_kriteria_details = [
             justify-content: space-between;
             align-items: center;
         }
+
         .table-responsive {
             border-radius: 10px;
             overflow-x: auto;
         }
+
         .table {
             margin-bottom: 0;
         }
+
         .table thead th {
             font-weight: 600;
             background-color: var(--secondary-color);
@@ -112,52 +119,65 @@ $fixed_kriteria_details = [
             padding: 1rem 0.75rem;
             white-space: nowrap;
         }
+
         .table tbody td {
             vertical-align: middle;
             padding: 0.75rem;
             white-space: nowrap;
         }
+
         .table-hover tbody tr:hover {
             background-color: rgba(78, 115, 223, 0.05);
         }
+
         .action-buttons a {
             margin-right: 0.25rem;
             margin-bottom: 0.25rem;
         }
+
         .action-buttons .btn {
             font-size: 0.875rem;
             padding: 0.45rem 0.75rem;
         }
+
         .badge-akreditasi {
             padding: 0.5em 0.7em;
             border-radius: 0.35rem;
             font-weight: 600;
             font-size: 0.75rem;
         }
+
         @media (max-width: 768px) {
-            .table thead th, .table tbody td {
+
+            .table thead th,
+            .table tbody td {
                 padding: 0.5rem;
                 font-size: 0.9rem;
             }
+
             .action-buttons {
                 display: flex;
                 flex-wrap: wrap;
                 justify-content: center;
             }
+
             .action-buttons a {
                 flex: 1 0 auto;
                 margin: 0.1rem;
             }
+
             .card-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
+
             .card-header h2 {
                 margin-bottom: 0.5rem;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container-fluid py-4">
         <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-school me-2"></i>Daftar Sekolah</h1>
@@ -185,13 +205,15 @@ $fixed_kriteria_details = [
             <div class="card-body">
                 <?php if (isset($_SESSION['pesan'])) { ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <?php echo $_SESSION['pesan']; unset($_SESSION['pesan']); ?>
+                        <?php echo $_SESSION['pesan'];
+                        unset($_SESSION['pesan']); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php } ?>
                 <?php if (isset($_SESSION['error'])) { ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                        <?php echo $_SESSION['error'];
+                        unset($_SESSION['error']); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php } ?>
@@ -220,47 +242,47 @@ $fixed_kriteria_details = [
                                 while ($row = mysqli_fetch_assoc($sekolah)) {
                                     $akreditasi_label = $row['akreditasi'];
                                     $badge_color = '';
-                                    if($akreditasi_label == 'A') $badge_color = 'success';
-                                    else if($akreditasi_label == 'B') $badge_color = 'primary';
-                                    else if($akreditasi_label == 'C') $badge_color = 'warning';
+                                    if ($akreditasi_label == 'A') $badge_color = 'success';
+                                    else if ($akreditasi_label == 'B') $badge_color = 'primary';
+                                    else if ($akreditasi_label == 'C') $badge_color = 'warning';
                                     else $badge_color = 'secondary';
                             ?>
-                                <tr>
-                                    <td><?php echo $no++; ?></td>
-                                    <td><?php echo htmlspecialchars($row['nama_sekolah']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['alamat']); ?></td>
-                                    <td class="text-center">
-                                        <span class="badge badge-akreditasi bg-<?php echo $badge_color; ?>">
-                                            <?php echo htmlspecialchars($akreditasi_label); ?>
-                                        </span>
-                                    </td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['total_guru']); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['total_murid_aktif']); ?></td>
-                                    <td>Rp <?php echo htmlspecialchars(number_format($row['biaya_spp'], 0, ',', '.')); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['total_fasilitas']); ?></td>
-                                    <td class="text-center">
-                                        <?php
-                                        $jarak_km = $row['jarak_jalan_raya'];
-                                        if ($jarak_km < 1) {
-                                            $jarak_meter = $jarak_km * 1000;
-                                            echo htmlspecialchars(number_format($jarak_meter, 0)) . " Meter";
-                                        } else {
-                                            echo htmlspecialchars(number_format($jarak_km, 3)) . " KM";
-                                        }
-                                        ?>
-                                    </td>
-                                    <td class="text-center"><?php echo htmlspecialchars(number_format($row['nilai_program_unggulan'], 2)); ?></td>
-                                    <td class="action-buttons text-center">
-                                        <a href="edit_sekolah.php?id=<?php echo $row['id_sekolah']; ?>" class="btn btn-warning btn-sm" title="Edit">
-                                            <i class="fas fa-edit"></i> <span class="d-none d-md-inline">Edit</span>
-                                        </a>
-                                        <a href="daftar_sekolah.php?hapus=<?php echo $row['id_sekolah']; ?>"
-                                           class="btn btn-danger btn-sm"
-                                           onclick="return confirm('Yakin ingin menghapus sekolah ini beserta penilaiannya?');" title="Hapus">
-                                            <i class="fas fa-trash-alt"></i> <span class="d-none d-md-inline">Hapus</span>
-                                        </a>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td><?php echo $no++; ?></td>
+                                        <td><?php echo htmlspecialchars($row['nama_sekolah']); ?></td>
+                                        <td><?php echo htmlspecialchars($row['alamat']); ?></td>
+                                        <td class="text-center">
+                                            <span class="badge badge-akreditasi bg-<?php echo $badge_color; ?>">
+                                                <?php echo htmlspecialchars($akreditasi_label); ?>
+                                            </span>
+                                        </td>
+                                        <td class="text-center"><?php echo htmlspecialchars($row['total_guru']); ?></td>
+                                        <td class="text-center"><?php echo htmlspecialchars($row['total_murid_aktif']); ?></td>
+                                        <td>Rp <?php echo htmlspecialchars(number_format($row['biaya_spp'], 0, ',', '.')); ?></td>
+                                        <td class="text-center"><?php echo htmlspecialchars($row['total_fasilitas']); ?></td>
+                                        <td class="text-center">
+                                            <?php
+                                            $jarak_km = $row['jarak_jalan_raya'];
+                                            if ($jarak_km < 1) {
+                                                $jarak_meter = $jarak_km * 1000;
+                                                echo htmlspecialchars(number_format($jarak_meter, 0)) . " Meter";
+                                            } else {
+                                                echo htmlspecialchars(number_format($jarak_km, 3)) . " KM";
+                                            }
+                                            ?>
+                                        </td>
+                                        <td class="text-center"><?php echo htmlspecialchars(number_format($row['nilai_program_unggulan'], 2)); ?></td>
+                                        <td class="action-buttons text-center">
+                                            <a href="edit_sekolah.php?id=<?php echo $row['id_sekolah']; ?>" class="btn btn-warning btn-sm" title="Edit">
+                                                <i class="fas fa-edit"></i> <span class="d-none d-md-inline">Edit</span>
+                                            </a>
+                                            <a href="daftar_sekolah.php?hapus=<?php echo $row['id_sekolah']; ?>"
+                                                class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Yakin ingin menghapus sekolah ini beserta penilaiannya?');" title="Hapus">
+                                                <i class="fas fa-trash-alt"></i> <span class="d-none d-md-inline">Hapus</span>
+                                            </a>
+                                        </td>
+                                    </tr>
                             <?php
                                 }
                             } else {
@@ -284,8 +306,8 @@ $fixed_kriteria_details = [
         </div>
     </div>
     <?php
-      require_once 'footer.php';
-      ?>
+    require_once 'footer.php';
+    ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Auto-hide alerts after 5 seconds
@@ -295,6 +317,44 @@ $fixed_kriteria_details = [
                 bsAlert.close();
             });
         }, 5000);
+
+        function confirmLogout(event) {
+            event.preventDefault();
+
+            const modalId = 'logoutModal';
+            if (document.getElementById(modalId)) return;
+
+            const confirmBox = document.createElement('div');
+            confirmBox.className = 'modal fade';
+            confirmBox.id = modalId;
+            confirmBox.setAttribute('tabindex', '-1');
+            confirmBox.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Konfirmasi Keluar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin keluar dari aplikasi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <a href="../logout.php" class="btn btn-danger">Yakin</a>
+                </div>
+            </div>
+        </div>
+    `;
+            document.body.appendChild(confirmBox);
+
+            const modal = new bootstrap.Modal(confirmBox);
+            modal.show();
+
+            confirmBox.addEventListener('hidden.bs.modal', () => {
+                confirmBox.remove();
+            });
+        }
     </script>
 </body>
+
 </html>
