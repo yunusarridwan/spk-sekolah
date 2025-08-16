@@ -189,14 +189,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                         <div class="col-md-6">
                             <label for="fasilitas_val" class="form-label">Total Fasilitas <span class="text-danger">*</span></label>
-                            <input type="number" name="fasilitas_val" id="fasilitas_val" class="form-control" required min="0">
+                            <input type="number" name="fasilitas_val" id="fasilitas_val" class="form-control" required min="1">
                             <small class="form-text text-muted">Total fasilitas harus bernilai positif.</small>
                         </div>
 
                         <div class="col-md-6">
                             <label for="jarak_jalan_raya_val" class="form-label">Jarak Sekolah dengan Jalan Raya <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" step="any" name="jarak_jalan_raya_val" id="jarak_jalan_raya_val" class="form-control" required min="0">
+                                <input type="number" step="any" name="jarak_jalan_raya_val" id="jarak_jalan_raya_val" class="form-control" required min="1">
                                 <span class="input-group-text">Meter</span>
                             </div>
                             <small class="form-text text-muted">Semakin rendah semakin baik (kriteria Cost). Nilai akan dikonversi ke KM saat disimpan.</small>
@@ -204,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                         <div class="col-md-6">
                             <label for="program_unggulan_val" class="form-label">Nilai Program Unggulan <span class="text-danger">*</span></label>
-                            <input type="number" step="any" name="program_unggulan_val" id="program_unggulan_val" class="form-control" required min="0" max="10">
+                            <input type="number" step="any" name="program_unggulan_val" id="program_unggulan_val" class="form-control" required min="1" max="10">
                             <small class="form-text text-muted">Berikan nilai program unggulan (contoh: 1-10, semakin tinggi semakin baik - kriteria Benefit).</small>
                         </div>
                     </div>

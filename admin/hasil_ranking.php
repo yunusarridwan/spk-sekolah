@@ -28,7 +28,7 @@ function getSekolahDanKriteriaData(mysqli $koneksi): array
                 sekolah s
             LEFT JOIN
                 kriteria k ON s.id_sekolah = k.id_sekolah";
-    
+
     $query = mysqli_query($koneksi, $sql);
     if ($query) {
         while ($row = mysqli_fetch_assoc($query)) {
@@ -54,10 +54,10 @@ function calculateSAWRanking(array $data_lengkap, array $kriteria_saw): array
         // SOLUSI: Tambahkan 'kriteria' ke dalam array yang dikembalikan
         // agar strukturnya konsisten dan tidak menyebabkan error.
         return [
-            'ranking' => [], 
-            'normalisasi' => [], 
-            'terbobot' => [], 
-            'data_asli' => [], 
+            'ranking' => [],
+            'normalisasi' => [],
+            'terbobot' => [],
+            'data_asli' => [],
             'kriteria' => $kriteria_saw
         ];
     }
@@ -91,7 +91,9 @@ function calculateSAWRanking(array $data_lengkap, array $kriteria_saw): array
             $max_min_values[$id_kriteria] = max($column_values);
         } else { // 'cost'
             // Untuk cost, cari nilai minimum yang bukan nol
-            $non_zero_values = array_filter($column_values, function($val) { return $val > 0; });
+            $non_zero_values = array_filter($column_values, function ($val) {
+                return $val > 0;
+            });
             $max_min_values[$id_kriteria] = !empty($non_zero_values) ? min($non_zero_values) : 0;
         }
     }
@@ -154,10 +156,10 @@ function calculateSAWRanking(array $data_lengkap, array $kriteria_saw): array
 if (isset($koneksi) && $koneksi) {
     // Ambil semua data dalam satu fungsi
     $data_lengkap_sekolah = getSekolahDanKriteriaData($koneksi);
-    
+
     // Lakukan perhitungan SAW
     $saw_results = calculateSAWRanking($data_lengkap_sekolah, KRITERIA_SAW);
-    
+
     // Ekstrak hasil untuk ditampilkan
     $ranking_results = $saw_results['ranking'];
     $normalisasi_matrix = $saw_results['normalisasi'];
@@ -190,6 +192,7 @@ $criterion_icons = [
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -352,21 +355,24 @@ $criterion_icons = [
             color: white;
             font-weight: 700;
             font-size: 1.1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .rank-1 {
-            background-color: #f6c23e; /* Gold */
+            background-color: #f6c23e;
+            /* Gold */
             color: #333;
         }
 
         .rank-2 {
-            background-color: #c0c0c0; /* Silver */
+            background-color: #c0c0c0;
+            /* Silver */
             color: #333;
         }
 
         .rank-3 {
-            background-color: #cd7f32; /* Bronze */
+            background-color: #cd7f32;
+            /* Bronze */
             color: white;
         }
 
@@ -399,19 +405,25 @@ $criterion_icons = [
             font-weight: 700;
             color: var(--primary-color);
         }
+
         .accordion-button:not(.collapsed) {
             background-color: var(--primary-color);
             color: white;
         }
+
         .accordion-button:not(.collapsed)::after {
-            filter: brightness(0) invert(1); /* Change arrow color to white */
+            filter: brightness(0) invert(1);
+            /* Change arrow color to white */
         }
+
         .accordion-item {
             border: 1px solid var(--border-color);
             border-radius: 10px;
             margin-bottom: 10px;
-            overflow: hidden; /* Ensures rounded corners apply */
+            overflow: hidden;
+            /* Ensures rounded corners apply */
         }
+
         .accordion-body {
             padding: 20px;
             background-color: white;
@@ -420,34 +432,41 @@ $criterion_icons = [
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
-            .table thead th, .table tbody td {
+
+            .table thead th,
+            .table tbody td {
                 padding: 0.5rem;
                 font-size: 0.9rem;
             }
+
             .rank-badge {
                 width: 30px;
                 height: 30px;
                 font-size: 0.9rem;
             }
+
             .stat-card {
                 padding: 1rem;
             }
+
             .stat-card .stat-card-value {
                 font-size: 1.2rem;
             }
+
             .h3 {
                 font-size: 1.5rem;
             }
         }
     </style>
 </head>
+
 <body>
     <?php
     // Conditionally include navbar if accessed by admin
     if (isset($_SESSION['user_id'])) {
         require_once '../admin/navbar.php'; // This is admin navbar
     } else {
-        require_once 'guest_navbar.php'; // This is guest navbar
+        require_once '../guest/guest_navbar.php'; // This is guest navbar
     }
     ?>
 
@@ -496,7 +515,7 @@ $criterion_icons = [
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush">
                             <?php
-                            foreach(KRITERIA_SAW as $kriteria_info) {
+                            foreach (KRITERIA_SAW as $kriteria_info) {
                                 $icon = $criterion_icons[$kriteria_info['nama_kriteria']] ?? $criterion_icons['default'];
                                 $badge_color = $kriteria_info['tipe'] == 'benefit' ? 'primary' : 'danger';
                                 $arrow_icon = $kriteria_info['tipe'] == 'benefit' ? 'fa-arrow-up' : 'fa-arrow-down';
@@ -538,9 +557,9 @@ $criterion_icons = [
                             <span>Daftar Peringkat Sekolah</span>
                         </div>
                         <div>
-                            <button class="btn btn-sm btn-outline-primary" id="printBtn">
-                                <i class="fas fa-print me-1"></i> Cetak
-                            </button>
+                            <a href="export_ranking_pdf.php" target="_blank" class="btn btn-sm btn-danger">
+                                <i class="fas fa-file-pdf me-1"></i> Export ke PDF
+                            </a>
                         </div>
                     </div>
                     <div class="card-body">
@@ -565,9 +584,9 @@ $criterion_icons = [
                                         foreach ($ranking_results as $result) {
                                             $row = $result['sekolah_data'];
                                             $rank_class = '';
-                                            if($result['peringkat'] == 1) $rank_class = 'rank-1';
-                                            else if($result['peringkat'] == 2) $rank_class = 'rank-2';
-                                            else if($result['peringkat'] == 3) $rank_class = 'rank-3';
+                                            if ($result['peringkat'] == 1) $rank_class = 'rank-1';
+                                            else if ($result['peringkat'] == 2) $rank_class = 'rank-2';
+                                            else if ($result['peringkat'] == 3) $rank_class = 'rank-3';
 
                                             // Get original akreditasi label (A, B, C)
                                             $akreditasi_label = array_search($result['original_scores'][1], KRITERIA_SAW[1]['options']);
@@ -576,9 +595,9 @@ $criterion_icons = [
                                             }
 
                                             $badge_color = '';
-                                            if($akreditasi_label == 'A') $badge_color = 'success';
-                                            else if($akreditasi_label == 'B') $badge_color = 'primary';
-                                            else if($akreditasi_label == 'C') $badge_color = 'warning';
+                                            if ($akreditasi_label == 'A') $badge_color = 'success';
+                                            else if ($akreditasi_label == 'B') $badge_color = 'primary';
+                                            else if ($akreditasi_label == 'C') $badge_color = 'warning';
                                             else $badge_color = 'secondary';
                                         ?>
                                             <tr <?php echo ($result['peringkat'] <= 3) ? 'class="fw-bold"' : ''; ?>>
@@ -589,8 +608,8 @@ $criterion_icons = [
                                                 </td>
                                                 <td>
                                                     <?php echo htmlspecialchars($row['nama_sekolah']); ?>
-                                                    <?php if($result['peringkat'] == 1): ?>
-                                                    <span class="badge bg-warning text-dark ms-1"><i class="fas fa-crown"></i> Top</span>
+                                                    <?php if ($result['peringkat'] == 1): ?>
+                                                        <span class="badge bg-warning text-dark ms-1"><i class="fas fa-crown"></i> Top</span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="text-center">
@@ -602,15 +621,15 @@ $criterion_icons = [
                                                     <div class="fw-bold"><?php echo number_format($result['total_skor'], 4); ?></div>
                                                     <div class="progress">
                                                         <div class="progress-bar bg-primary" role="progressbar"
-                                                             style="width: <?php echo ($result['total_skor'] * 100); ?>%"
-                                                             aria-valuenow="<?php echo htmlspecialchars($result['total_skor']); ?>"
-                                                             aria-valuemin="0" aria-valuemax="1">
+                                                            style="width: <?php echo ($result['total_skor'] * 100); ?>%"
+                                                            aria-valuenow="<?php echo htmlspecialchars($result['total_skor']); ?>"
+                                                            aria-valuemin="0" aria-valuemax="1">
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td class="text-center">
                                                     <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
-                                                            data-bs-target="#detailModal<?php echo $row['id_sekolah']; ?>">
+                                                        data-bs-target="#detailModal<?php echo $row['id_sekolah']; ?>">
                                                         <i class="fas fa-eye me-1"></i> Detail
                                                     </button>
                                                 </td>
@@ -634,9 +653,9 @@ $criterion_icons = [
                                                                 <h4 class="mt-2 text-primary">Skor Total: <?php echo number_format($result['total_skor'], 4); ?></h4>
                                                                 <div class="progress mx-auto" style="height: 25px; width: 80%;">
                                                                     <div class="progress-bar bg-primary fw-bold" role="progressbar"
-                                                                         style="width: <?php echo ($result['total_skor'] * 100); ?>%"
-                                                                         aria-valuenow="<?php echo htmlspecialchars($result['total_skor']); ?>"
-                                                                         aria-valuemin="0" aria-valuemax="1">
+                                                                        style="width: <?php echo ($result['total_skor'] * 100); ?>%"
+                                                                        aria-valuenow="<?php echo htmlspecialchars($result['total_skor']); ?>"
+                                                                        aria-valuemin="0" aria-valuemax="1">
                                                                         <?php echo number_format($result['total_skor'], 4); ?>
                                                                     </div>
                                                                 </div>
@@ -744,7 +763,7 @@ $criterion_icons = [
                         <?php if (isset($_SESSION['user_id'])) { ?>
                             <a href="../admin/dashboard.php" class="btn btn-secondary">Kembali ke Dashboard</a>
                         <?php } else { ?>
-                             <a href="../index.php" class="btn btn-info">Kembali ke Halaman Utama</a>
+                            <a href="../index.php" class="btn btn-info">Kembali ke Halaman Utama</a>
                         <?php } ?>
                     </div>
                 </div>
@@ -771,7 +790,8 @@ $criterion_icons = [
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php foreach ($ranking_results as $result): // Loop through ranked results ?>
+                                                <?php foreach ($ranking_results as $result): // Loop through ranked results 
+                                                ?>
                                                     <?php $s_data = $result['sekolah_data']; ?>
                                                     <?php $id_sekolah = $s_data['id_sekolah']; ?>
                                                     <tr>
@@ -779,27 +799,27 @@ $criterion_icons = [
                                                         <?php foreach ($kriteria_for_tables as $id_kriteria => $k_info): ?>
                                                             <td>
                                                                 <?php
-                                                                    $val = $original_data_matrix[$id_sekolah][$id_kriteria] ?? 'N/A';
-                                                                    if ($id_kriteria == 1) { // Akreditasi
-                                                                        echo array_search($val, KRITERIA_SAW[1]['options']) ?: $val;
-                                                                    } elseif ($id_kriteria == 2) { // Biaya SPP
-                                                                        echo is_numeric($val) ? 'Rp ' . number_format($val, 0, ',', '.') : $val;
-                                                                    } elseif ($id_kriteria == 3) { // Fasilitas
-                                                                        echo is_numeric($val) ? number_format($val, 0) : htmlspecialchars($val);
-                                                                    } elseif ($id_kriteria == 4) { // Jarak
-                                                                        // Display distance in KM or Meter based on value
-                                                                        if (is_numeric($val)) {
-                                                                            if ($val < 1) {
-                                                                                echo number_format($val * 1000, 0) . ' Meter';
-                                                                            } else {
-                                                                                echo number_format($val, 3) . ' KM';
-                                                                            }
+                                                                $val = $original_data_matrix[$id_sekolah][$id_kriteria] ?? 'N/A';
+                                                                if ($id_kriteria == 1) { // Akreditasi
+                                                                    echo array_search($val, KRITERIA_SAW[1]['options']) ?: $val;
+                                                                } elseif ($id_kriteria == 2) { // Biaya SPP
+                                                                    echo is_numeric($val) ? 'Rp ' . number_format($val, 0, ',', '.') : $val;
+                                                                } elseif ($id_kriteria == 3) { // Fasilitas
+                                                                    echo is_numeric($val) ? number_format($val, 0) : htmlspecialchars($val);
+                                                                } elseif ($id_kriteria == 4) { // Jarak
+                                                                    // Display distance in KM or Meter based on value
+                                                                    if (is_numeric($val)) {
+                                                                        if ($val < 1) {
+                                                                            echo number_format($val * 1000, 0) . ' Meter';
                                                                         } else {
-                                                                            echo htmlspecialchars($val);
+                                                                            echo number_format($val, 3) . ' KM';
                                                                         }
                                                                     } else {
-                                                                        echo is_numeric($val) ? number_format($val, 2) : htmlspecialchars($val);
+                                                                        echo htmlspecialchars($val);
                                                                     }
+                                                                } else {
+                                                                    echo is_numeric($val) ? number_format($val, 2) : htmlspecialchars($val);
+                                                                }
                                                                 ?>
                                                             </td>
                                                         <?php endforeach; ?>
@@ -813,7 +833,7 @@ $criterion_icons = [
                                 <div class="card mb-4">
                                     <div class="card-header"><i class="fas fa-compress-alt"></i> Matriks Ternormalisasi (R)</div>
                                     <div class="card-body table-responsive">
-                                       <table class="table table-bordered table-sm">
+                                        <table class="table table-bordered table-sm">
                                             <thead>
                                                 <tr>
                                                     <th>Sekolah</th>
@@ -823,7 +843,8 @@ $criterion_icons = [
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php foreach ($ranking_results as $result): // Loop through ranked results ?>
+                                                <?php foreach ($ranking_results as $result): // Loop through ranked results 
+                                                ?>
                                                     <?php $s_data = $result['sekolah_data']; ?>
                                                     <?php $id_sekolah = $s_data['id_sekolah']; ?>
                                                     <tr>
@@ -837,33 +858,34 @@ $criterion_icons = [
                                         </table>
                                     </div>
                                 </div>
-                                
+
                                 <div class="card mb-4">
-                                        <div class="card-header"><i class="fas fa-weight-hanging"></i> Matriks Ternormalisasi Terbobot (Y)</div>
-                                        <div class="card-body table-responsive">
-                                            <table class="table table-bordered table-sm">
-                                                <thead>
+                                    <div class="card-header"><i class="fas fa-weight-hanging"></i> Matriks Ternormalisasi Terbobot (Y)</div>
+                                    <div class="card-body table-responsive">
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Sekolah</th>
+                                                    <?php foreach ($kriteria_for_tables as $k): ?>
+                                                        <th><?php echo htmlspecialchars($k['nama_kriteria']); ?></th>
+                                                    <?php endforeach; ?>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($ranking_results as $result): // Loop through ranked results 
+                                                ?>
+                                                    <?php $s_data = $result['sekolah_data']; ?>
+                                                    <?php $id_sekolah = $s_data['id_sekolah']; ?>
                                                     <tr>
-                                                        <th>Sekolah</th>
-                                                        <?php foreach ($kriteria_for_tables as $k): ?>
-                                                            <th><?php echo htmlspecialchars($k['nama_kriteria']); ?></th>
+                                                        <td><?php echo htmlspecialchars($s_data['nama_sekolah']); ?></td>
+                                                        <?php foreach ($kriteria_for_tables as $id_kriteria => $k_info): ?>
+                                                            <td><?php echo number_format($terbobot_matrix[$id_sekolah][$id_kriteria] ?? 0, 4); ?></td>
                                                         <?php endforeach; ?>
                                                     </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <?php foreach ($ranking_results as $result): // Loop through ranked results ?>
-                                                        <?php $s_data = $result['sekolah_data']; ?>
-                                                        <?php $id_sekolah = $s_data['id_sekolah']; ?>
-                                                        <tr>
-                                                            <td><?php echo htmlspecialchars($s_data['nama_sekolah']); ?></td>
-                                                            <?php foreach ($kriteria_for_tables as $id_kriteria => $k_info): ?>
-                                                                <td><?php echo number_format($terbobot_matrix[$id_sekolah][$id_kriteria] ?? 0, 4); ?></td>
-                                                            <?php endforeach; ?>
-                                                        </tr>
-                                                    <?php endforeach; ?>
-                                                </tbody>
-                                            </table>
-                                            </div>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -873,14 +895,10 @@ $criterion_icons = [
         </div>
     </div>
     <?php
-      require_once '../admin/footer.php';
-      ?>
+    require_once '../admin/footer.php';
+    ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.getElementById('printBtn').addEventListener('click', function() {
-            window.print();
-        });
-
         document.querySelectorAll('.btn-info').forEach(function(btn) {
             btn.addEventListener('mouseover', function() {
                 this.closest('tr').classList.add('table-active');
@@ -890,6 +908,44 @@ $criterion_icons = [
                 this.closest('tr').classList.remove('table-active');
             });
         });
+
+        function confirmLogout(event) {
+            event.preventDefault();
+
+            const modalId = 'logoutModal';
+            if (document.getElementById(modalId)) return;
+
+            const confirmBox = document.createElement('div');
+            confirmBox.className = 'modal fade';
+            confirmBox.id = modalId;
+            confirmBox.setAttribute('tabindex', '-1');
+            confirmBox.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Konfirmasi Keluar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin keluar dari aplikasi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <a href="../logout.php" class="btn btn-danger">Yakin</a>
+                </div>
+            </div>
+        </div>
+    `;
+            document.body.appendChild(confirmBox);
+
+            const modal = new bootstrap.Modal(confirmBox);
+            modal.show();
+
+            confirmBox.addEventListener('hidden.bs.modal', () => {
+                confirmBox.remove();
+            });
+        }
     </script>
 </body>
+
 </html>

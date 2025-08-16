@@ -28,7 +28,7 @@ function getSekolahDanKriteriaData(mysqli $koneksi): array
                 sekolah s
             LEFT JOIN
                 kriteria k ON s.id_sekolah = k.id_sekolah";
-    
+
     $query = mysqli_query($koneksi, $sql);
     if ($query) {
         while ($row = mysqli_fetch_assoc($query)) {
@@ -46,10 +46,10 @@ function calculateSAWRanking(array $data_lengkap, array $kriteria_saw): array
 {
     if (empty($data_lengkap)) {
         return [
-            'ranking' => [], 
-            'normalisasi' => [], 
-            'terbobot' => [], 
-            'data_asli' => [], 
+            'ranking' => [],
+            'normalisasi' => [],
+            'terbobot' => [],
+            'data_asli' => [],
             'kriteria' => $kriteria_saw // Pastikan key 'kriteria' ada
         ];
     }
@@ -76,12 +76,14 @@ function calculateSAWRanking(array $data_lengkap, array $kriteria_saw): array
     // Langkah 2: Cari nilai Max/Min untuk setiap kriteria
     foreach ($kriteria_saw as $id_kriteria => $kriteria_info) {
         $column_values = array_column($original_matrix, $id_kriteria);
-        if (empty($column_values)) continue; 
+        if (empty($column_values)) continue;
 
         if ($kriteria_info['tipe'] === 'benefit') {
             $max_min_values[$id_kriteria] = max($column_values);
         } else { // 'cost'
-            $non_zero_values = array_filter($column_values, function($val) { return $val > 0; });
+            $non_zero_values = array_filter($column_values, function ($val) {
+                return $val > 0;
+            });
             $max_min_values[$id_kriteria] = !empty($non_zero_values) ? min($non_zero_values) : 0;
         }
     }
@@ -145,10 +147,10 @@ function calculateSAWRanking(array $data_lengkap, array $kriteria_saw): array
 if (isset($koneksi) && $koneksi) {
     // Panggil fungsi yang sudah disesuaikan
     $data_lengkap_sekolah = getSekolahDanKriteriaData($koneksi);
-    
+
     // Lakukan perhitungan SAW
     $saw_results = calculateSAWRanking($data_lengkap_sekolah, KRITERIA_SAW);
-    
+
     // Ekstrak hasil untuk ditampilkan
     $ranking_results = $saw_results['ranking'];
     $normalisasi_matrix = $saw_results['normalisasi'];
@@ -181,17 +183,19 @@ $criterion_icons = [
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hasil Ranking Sekolah</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --primary-color: #4e73df;
             --secondary-color: #f8f9fc;
             --text-primary: #5a5c69;
+            --text-secondary: #858796;
             --border-color: #e3e6f0;
         }
 
@@ -214,11 +218,119 @@ $criterion_icons = [
             color: var(--primary-color);
             font-weight: 700;
             padding: 1rem 1.25rem;
+            border-top-left-radius: 10px !important;
+            border-top-right-radius: 10px !important;
+        }
+
+        .table-responsive {
+            border-radius: 10px;
+            overflow-x: auto;
+        }
+
+        .table {
+            margin-bottom: 0;
         }
 
         .table thead th {
             font-weight: 600;
             background-color: var(--secondary-color);
+            border-top: none;
+            vertical-align: middle;
+            padding: 1rem 0.75rem;
+            white-space: nowrap;
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+            padding: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .badge-criteria {
+            padding: 0.5rem 0.75rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-radius: 0.35rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #2e59d9;
+            border-color: #2653d4;
+        }
+
+        .btn-info {
+            background-color: #36b9cc;
+            border-color: #36b9cc;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background-color: #2a96a5;
+            border-color: #258391;
+            color: white;
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            padding: 1.5rem;
+            border-left: 4px solid;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            height: 100%;
+        }
+
+        .stat-card-primary {
+            border-left-color: var(--primary-color);
+        }
+
+        .stat-card-success {
+            border-left-color: #1cc88a;
+        }
+
+        .stat-card .stat-card-icon {
+            color: #dddfeb;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .stat-card-title {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .stat-card .stat-card-value {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+
+        .criterion-card {
+            transition: transform 0.2s;
+            cursor: default;
+        }
+
+        .criterion-card:hover {
+            transform: none;
+        }
+
+        .criterion-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(78, 115, 223, 0.05);
         }
 
         .rank-badge {
@@ -227,35 +339,118 @@ $criterion_icons = [
             justify-content: center;
             width: 36px;
             height: 36px;
+            line-height: 1;
+            text-align: center;
             border-radius: 50%;
             background-color: var(--primary-color);
             color: white;
             font-weight: 700;
             font-size: 1.1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .rank-1 { background-color: #f6c23e; color: #333; }
-        .rank-2 { background-color: #c0c0c0; color: #333; }
-        .rank-3 { background-color: #cd7f32; color: white; }
+        .rank-1 {
+            background-color: #f6c23e;
+            /* Gold */
+            color: #333;
+        }
+
+        .rank-2 {
+            background-color: #c0c0c0;
+            /* Silver */
+            color: #333;
+        }
+
+        .rank-3 {
+            background-color: #cd7f32;
+            /* Bronze */
+            color: white;
+        }
 
         .modal-header {
             background-color: var(--primary-color);
             color: white;
+            border-bottom: none;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .modal-footer {
+            border-top: none;
         }
 
         .progress {
             height: 0.75rem;
+            margin-top: 0.5rem;
+            border-radius: 0.25rem;
+            background-color: var(--border-color);
+        }
+
+        .progress-bar {
+            background-color: var(--primary-color);
+            border-radius: 0.25rem;
+        }
+
+        /* Accordion Styles */
+        .accordion-button {
+            font-weight: 700;
+            color: var(--primary-color);
         }
 
         .accordion-button:not(.collapsed) {
             background-color: var(--primary-color);
             color: white;
         }
+
         .accordion-button:not(.collapsed)::after {
             filter: brightness(0) invert(1);
+            /* Change arrow color to white */
+        }
+
+        .accordion-item {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            /* Ensures rounded corners apply */
+        }
+
+        .accordion-body {
+            padding: 20px;
+            background-color: white;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+
+            .table thead th,
+            .table tbody td {
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
+
+            .rank-badge {
+                width: 30px;
+                height: 30px;
+                font-size: 0.9rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-card .stat-card-value {
+                font-size: 1.2rem;
+            }
+
+            .h3 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
+
 <body>
     <?php
     if (isset($_SESSION['user_id'])) {
@@ -266,130 +461,308 @@ $criterion_icons = [
     ?>
 
     <div class="container-fluid py-4">
-        <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-trophy me-2"></i>Hasil Ranking Sekolah</h1>
+        <h1 class="h3 mb-4 text-gray-500">
+            <i class="fas fa-trophy me-2"></i> Hasil Ranking Sekolah
+        </h1>
 
         <div class="row mb-4">
             <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card border-start-primary shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col me-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Sekolah</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $total_sekolah_dinilai; ?> Sekolah</div>
-                            </div>
-                            <div class="col-auto"><i class="fas fa-school fa-2x text-gray-300"></i></div>
-                        </div>
+                <div class="stat-card stat-card-primary">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-school"></i>
                     </div>
+                    <div class="stat-card-title">Total Sekolah Dinilai</div>
+                    <div class="stat-card-value"><?php echo $total_sekolah_dinilai; ?> Sekolah</div>
                 </div>
             </div>
             <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card border-start-success shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col me-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Metode Penilaian</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">Simple Additive Weighting (SAW)</div>
-                            </div>
-                            <div class="col-auto"><i class="fas fa-calculator fa-2x text-gray-300"></i></div>
-                        </div>
+                <div class="stat-card stat-card-success">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-calculator"></i>
                     </div>
+                    <div class="stat-card-title">Metode Penilaian</div>
+                    <div class="stat-card-value">Simple Additive Weighting (SAW)</div>
                 </div>
             </div>
-            <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card border-start-info shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col me-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tanggal Penilaian</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo date("d F Y"); ?></div>
-                            </div>
-                            <div class="col-auto"><i class="fas fa-calendar fa-2x text-gray-300"></i></div>
-                        </div>
+            <div class="col-xl-4 col-md-12 mb-4">
+                <div class="stat-card" style="border-left-color: #36b9cc;">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-calendar"></i>
                     </div>
+                    <div class="stat-card-title">Tanggal Penilaian</div>
+                    <div class="stat-card-value"><?php echo date("d F Y"); ?></div>
                 </div>
             </div>
         </div>
 
         <div class="row">
             <div class="col-lg-4 mb-4">
-                <div class="card shadow">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-list-check me-2"></i>Kriteria Penilaian</h6>
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <i class="fas fa-list-check me-2"></i>
+                        <span>Kriteria Penilaian</span>
                     </div>
                     <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            <?php foreach(KRITERIA_SAW as $kriteria_info): ?>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="<?php echo $criterion_icons[$kriteria_info['nama_kriteria']]; ?> me-2 text-<?php echo $kriteria_info['tipe'] == 'benefit' ? 'success' : 'danger'; ?>"></i>
-                                    <?php echo htmlspecialchars($kriteria_info['nama_kriteria']); ?>
+                        <div class="list-group list-group-flush">
+                            <?php
+                            foreach (KRITERIA_SAW as $kriteria_info) {
+                                $icon = $criterion_icons[$kriteria_info['nama_kriteria']] ?? $criterion_icons['default'];
+                                $badge_color = $kriteria_info['tipe'] == 'benefit' ? 'primary' : 'danger';
+                                $arrow_icon = $kriteria_info['tipe'] == 'benefit' ? 'fa-arrow-up' : 'fa-arrow-down';
+                                $tip_text = $kriteria_info['tipe'] == 'benefit' ? 'Semakin Tinggi Semakin Baik' : 'Semakin Rendah Semakin Baik';
+                            ?>
+                                <div class="list-group-item criterion-card d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="<?php echo $icon; ?> criterion-icon text-<?php echo $badge_color; ?>"></i>
+                                        <span class="fw-semibold"><?php echo htmlspecialchars($kriteria_info['nama_kriteria']); ?></span>
+                                    </div>
+                                    <span class="badge bg-<?php echo $badge_color; ?> badge-criteria">
+                                        <i class="fas <?php echo $arrow_icon; ?> me-1"></i>
+                                        <?php echo htmlspecialchars($tip_text); ?>
+                                    </span>
                                 </div>
-                                <span class="badge bg-<?php echo $kriteria_info['tipe'] == 'benefit' ? 'success' : 'danger'; ?> rounded-pill">
-                                    <?php echo ucfirst($kriteria_info['tipe']); ?>
-                                </span>
-                            </li>
-                            <?php endforeach; ?>
-                        </ul>
+                            <?php } ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span>Informasi Sistem</span>
+                    </div>
+                    <div class="card-body">
+                        <p><i class="fas fa-bullseye text-primary me-2"></i> <strong>Tujuan:</strong> Membantu calon siswa dan orang tua dalam memilih sekolah terbaik.</p>
+                        <p><i class="fas fa-chart-line text-success me-2"></i> <strong>Metode SAW:</strong> Memperhitungkan berbagai kriteria untuk mendapatkan hasil yang komprehensif.</p>
+                        <p><i class="fas fa-exclamation-triangle text-warning me-2"></i> <strong>Catatan:</strong> Hasil perankingan ini hanya sebagai referensi, keputusan akhir tetap di tangan Anda.</p>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-8">
-                <div class="card shadow">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-ranking-star me-2"></i>Daftar Peringkat Sekolah</h6>
-                        <button class="btn btn-sm btn-outline-primary" id="printBtn"><i class="fas fa-print me-1"></i> Cetak</button>
+                <div class="card">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="fas fa-ranking-star me-2"></i>
+                            <span>Daftar Peringkat Sekolah</span>
+                        </div>
+                        <div>
+                            <a href="../admin/export_ranking_pdf.php" target="_blank" class="btn btn-sm btn-danger">
+                                <i class="fas fa-file-pdf me-1"></i> Export ke PDF
+                            </a>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <?php if (empty($ranking_results)): ?>
-                            <div class="alert alert-warning text-center" role="alert">Belum ada data sekolah untuk diranking.</div>
-                        <?php else: ?>
+                        <?php if (empty($ranking_results)) { ?>
+                            <div class="alert alert-warning" role="alert">
+                                Belum ada data sekolah atau penilaian untuk diranking.
+                            </div>
+                        <?php } else { ?>
                             <div class="table-responsive">
                                 <table class="table table-hover" id="rankingTable">
                                     <thead>
                                         <tr>
                                             <th class="text-center">Peringkat</th>
                                             <th>Nama Sekolah</th>
-                                            <th class="text-center">Skor Akhir</th>
+                                            <th class="text-center">Akreditasi</th>
+                                            <th class="text-center">Skor</th>
                                             <th class="text-center">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($ranking_results as $id_sekolah => $result): ?>
-                                            <tr class="<?php if($result['peringkat'] <= 3) echo 'table-light'; ?>">
-                                                <td class="text-center fw-bold">
-                                                    <span class="rank-badge <?php if($result['peringkat'] <= 3) echo 'rank-'.$result['peringkat']; ?>">
+                                        <?php
+                                        foreach ($ranking_results as $result) {
+                                            $row = $result['sekolah_data'];
+                                            $rank_class = '';
+                                            if ($result['peringkat'] == 1) $rank_class = 'rank-1';
+                                            else if ($result['peringkat'] == 2) $rank_class = 'rank-2';
+                                            else if ($result['peringkat'] == 3) $rank_class = 'rank-3';
+
+                                            // Get original akreditasi label (A, B, C)
+                                            $akreditasi_label = array_search($result['original_scores'][1], KRITERIA_SAW[1]['options']);
+                                            if ($akreditasi_label === false) { // Handle case if original value isn't directly mapped
+                                                $akreditasi_label = $result['original_scores'][1]; // Use numeric if not found
+                                            }
+
+                                            $badge_color = '';
+                                            if ($akreditasi_label == 'A') $badge_color = 'success';
+                                            else if ($akreditasi_label == 'B') $badge_color = 'primary';
+                                            else if ($akreditasi_label == 'C') $badge_color = 'warning';
+                                            else $badge_color = 'secondary';
+                                        ?>
+                                            <tr <?php echo ($result['peringkat'] <= 3) ? 'class="fw-bold"' : ''; ?>>
+                                                <td class="text-center">
+                                                    <span class="rank-badge <?php echo $rank_class; ?>">
                                                         <?php echo $result['peringkat']; ?>
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <?php echo htmlspecialchars($result['sekolah_data']['nama_sekolah']); ?>
-                                                    <?php if($result['peringkat'] == 1): ?><span class="badge bg-warning text-dark ms-2"><i class="fas fa-crown"></i> Pilihan Terbaik</span><?php endif; ?>
+                                                    <?php echo htmlspecialchars($row['nama_sekolah']); ?>
+                                                    <?php if ($result['peringkat'] == 1): ?>
+                                                        <span class="badge bg-warning text-dark ms-1"><i class="fas fa-crown"></i> Top</span>
+                                                    <?php endif; ?>
                                                 </td>
-                                                <td class="text-center fw-bold">
-                                                    <?php echo number_format($result['total_skor'], 4); ?>
-                                                    <div class="progress mt-1">
-                                                        <div class="progress-bar" role="progressbar" style="width: <?php echo ($result['total_skor'] * 100); ?>%" aria-valuenow="<?php echo $result['total_skor']; ?>" aria-valuemin="0" aria-valuemax="1"></div>
+                                                <td class="text-center">
+                                                    <span class="badge rounded-pill bg-<?php echo $badge_color; ?>">
+                                                        <?php echo htmlspecialchars($akreditasi_label); ?>
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="fw-bold"><?php echo number_format($result['total_skor'], 4); ?></div>
+                                                    <div class="progress">
+                                                        <div class="progress-bar bg-primary" role="progressbar"
+                                                            style="width: <?php echo ($result['total_skor'] * 100); ?>%"
+                                                            aria-valuenow="<?php echo htmlspecialchars($result['total_skor']); ?>"
+                                                            aria-valuemin="0" aria-valuemax="1">
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td class="text-center">
-                                                    <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detailModal<?php echo $id_sekolah; ?>">
+                                                    <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
+                                                        data-bs-target="#detailModal<?php echo $row['id_sekolah']; ?>">
                                                         <i class="fas fa-eye me-1"></i> Detail
                                                     </button>
                                                 </td>
                                             </tr>
-                                        <?php endforeach; ?>
+
+                                            <div class="modal fade" id="detailModal<?php echo $row['id_sekolah']; ?>" tabindex="-1" aria-labelledby="detailModalLabel<?php echo $row['id_sekolah']; ?>" aria-hidden="true">
+                                                <div class="modal-dialog modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="detailModalLabel<?php echo $row['id_sekolah']; ?>">
+                                                                <i class="fas fa-school me-2"></i>
+                                                                Detail Sekolah: <?php echo htmlspecialchars($row['nama_sekolah']); ?>
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="text-center mb-4">
+                                                                <span class="rank-badge <?php echo $rank_class; ?> fs-4 p-3 mb-2">
+                                                                    #<?php echo $result['peringkat']; ?>
+                                                                </span>
+                                                                <h4 class="mt-2 text-primary">Skor Total: <?php echo number_format($result['total_skor'], 4); ?></h4>
+                                                                <div class="progress mx-auto" style="height: 25px; width: 80%;">
+                                                                    <div class="progress-bar bg-primary fw-bold" role="progressbar"
+                                                                        style="width: <?php echo ($result['total_skor'] * 100); ?>%"
+                                                                        aria-valuenow="<?php echo htmlspecialchars($result['total_skor']); ?>"
+                                                                        aria-valuemin="0" aria-valuemax="1">
+                                                                        <?php echo number_format($result['total_skor'], 4); ?>
+                                                                    </div>
+                                                                </div>
+                                                                <p class="text-muted mt-2"><small>Peringkat ke-<?php echo $result['peringkat']; ?> dari <?php echo $total_sekolah_dinilai; ?> sekolah</small></p>
+                                                            </div>
+
+                                                            <hr>
+
+                                                            <div class="row">
+                                                                <div class="col-md-6">
+                                                                    <h6 class="border-bottom pb-2 mb-3 text-primary"><i class="fas fa-info-circle me-2"></i> Informasi Umum</h6>
+                                                                    <ul class="list-group list-group-flush">
+                                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                            <span><i class="fas fa-map-marker-alt text-danger me-2"></i> Alamat:</span>
+                                                                            <span><?php echo htmlspecialchars($row['alamat']); ?></span>
+                                                                        </li>
+                                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                            <span><i class="fas fa-award text-primary me-2"></i> Akreditasi:</span>
+                                                                            <span>
+                                                                                <span class="badge bg-<?php echo $badge_color; ?> px-3 py-2">
+                                                                                    <?php echo htmlspecialchars($akreditasi_label); ?>
+                                                                                </span>
+                                                                            </span>
+                                                                        </li>
+                                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                            <span><i class="fas fa-chalkboard-teacher text-info me-2"></i> Total Guru:</span>
+                                                                            <span><?php echo htmlspecialchars($row['total_guru']); ?> orang</span>
+                                                                        </li>
+                                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                            <span><i class="fas fa-graduation-cap text-success me-2"></i> Total Murid Aktif:</span>
+                                                                            <span><?php echo htmlspecialchars(is_numeric($row['total_murid_aktif']) ? number_format($row['total_murid_aktif']) : $row['total_murid_aktif']); ?></span>
+                                                                        </li>
+                                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                            <span><i class="fas fa-road text-warning me-2"></i> Jarak Jalan Raya:</span>
+                                                                            <span>
+                                                                                <?php
+                                                                                $jarak_km_display = $row['jarak_jalan_raya']; // Menggunakan nilai asli dari $row
+                                                                                if ($jarak_km_display < 1) {
+                                                                                    echo htmlspecialchars(number_format($jarak_km_display * 1000, 0)) . " Meter";
+                                                                                } else {
+                                                                                    echo htmlspecialchars(number_format($jarak_km_display, 3)) . " KM";
+                                                                                }
+                                                                                ?>
+                                                                            </span>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <h6 class="border-bottom pb-2 mb-3 text-primary"><i class="fas fa-list-check me-2"></i> Nilai Kriteria</h6>
+                                                                    <ul class="list-group list-group-flush">
+                                                                        <?php
+                                                                        foreach (KRITERIA_SAW as $id_kriteria_modal => $kriteria_info_modal) {
+                                                                            $nilai_asli_numeric = $result['original_scores'][$id_kriteria_modal] ?? 'N/A';
+                                                                            $nilai_ternormalisasi = $result['normalized_scores'][$id_kriteria_modal] ?? 0;
+
+                                                                            $display_value_asli = $nilai_asli_numeric;
+                                                                            // Custom display for original values based on type
+                                                                            if ($id_kriteria_modal == 1) { // Akreditasi
+                                                                                $display_value_asli = array_search($nilai_asli_numeric, KRITERIA_SAW[1]['options']) ?: $nilai_asli_numeric;
+                                                                            } elseif ($id_kriteria_modal == 2) { // Biaya SPP
+                                                                                $display_value_asli = 'Rp ' . (is_numeric($nilai_asli_numeric) ? number_format($nilai_asli_numeric, 0, ',', '.') : $nilai_asli_numeric);
+                                                                            } elseif ($id_kriteria_modal == 4) { // Jarak
+                                                                                // Display distance in KM or Meter based on value
+                                                                                if (is_numeric($nilai_asli_numeric)) {
+                                                                                    if ($nilai_asli_numeric < 1) {
+                                                                                        $display_value_asli = number_format($nilai_asli_numeric * 1000, 0) . ' Meter';
+                                                                                    } else {
+                                                                                        $display_value_asli = number_format($nilai_asli_numeric, 3) . ' KM';
+                                                                                    }
+                                                                                } else {
+                                                                                    $display_value_asli = htmlspecialchars($nilai_asli_numeric);
+                                                                                }
+                                                                            } else {
+                                                                                $display_value_asli = is_numeric($nilai_asli_numeric) ? number_format($nilai_asli_numeric, 2) : $nilai_asli_numeric;
+                                                                            }
+                                                                        ?>
+                                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                <div>
+                                                                                    <i class="<?php echo $criterion_icons[$kriteria_info_modal['nama_kriteria']] ?? $criterion_icons['default']; ?> text-secondary me-2"></i>
+                                                                                    <?php echo htmlspecialchars($kriteria_info_modal['nama_kriteria']); ?>:
+                                                                                </div>
+                                                                                <div class="text-end">
+                                                                                    Nilai: <span class="fw-bold"><?php echo htmlspecialchars($display_value_asli); ?></span>
+                                                                                    (Norm: <?php echo number_format($nilai_ternormalisasi, 4); ?>)
+                                                                                </div>
+                                                                            </li>
+                                                                        <?php } ?>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php } ?>
                                     </tbody>
                                 </table>
                             </div>
-                        <?php endif; ?>
+                        <?php } ?>
+                    </div>
+                    <div class="card-footer">
+                        <?php if (isset($_SESSION['user_id'])) { ?>
+                            <a href="../admin/dashboard.php" class="btn btn-secondary">Kembali ke Dashboard</a>
+                        <?php } else { ?>
+                            <a href="../index.php" class="btn btn-info">Kembali ke Halaman Utama</a>
+                        <?php } ?>
                     </div>
                 </div>
-                 <div class="accordion mt-4" id="detailPerhitunganAccordion">
+
+                <div class="accordion mt-4" id="detailPerhitunganAccordion">
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingOne">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                                <strong><i class="fas fa-calculator me-2"></i>Lihat Detail Langkah Perhitungan SAW</strong>
+                                <strong><i class="fas fa-info-circle me-2"></i> Lihat Detail Langkah-langkah Perhitungan SAW</strong>
                             </button>
                         </h2>
                         <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#detailPerhitunganAccordion">
@@ -401,69 +774,106 @@ $criterion_icons = [
                                             <thead>
                                                 <tr>
                                                     <th>Sekolah</th>
-                                                    <?php foreach ($kriteria_for_tables as $k): ?><th><?php echo htmlspecialchars($k['nama_kriteria']); ?></th><?php endforeach; ?>
+                                                    <?php foreach ($kriteria_for_tables as $k): ?>
+                                                        <th><?php echo htmlspecialchars($k['nama_kriteria']); ?></th>
+                                                    <?php endforeach; ?>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                            <?php foreach ($ranking_results as $id_s => $res): ?>
-                                                <tr>
-                                                    <td><?php echo htmlspecialchars($res['sekolah_data']['nama_sekolah']); ?></td>
-                                                    <?php foreach ($kriteria_for_tables as $id_k => $k_info): 
-                                                        $val = $original_data_matrix[$id_s][$id_k] ?? 'N/A';
-                                                        if ($id_k == 1) { echo array_search($val, $k_info['options']) ?: $val; }
-                                                        else { echo is_numeric($val) ? number_format($val, 2) : $val; }
-                                                    ?>
-                                                    <td><?php echo is_numeric($val) ? ( $id_k == 2 ? 'Rp '.number_format($val) : number_format($val, 2) ) : (array_search($val, $k_info['options']) ?: $val); ?></td>
-                                                    <?php endforeach; ?>
-                                                </tr>
-                                            <?php endforeach; ?>
+                                                <?php foreach ($ranking_results as $result): // Loop through ranked results 
+                                                ?>
+                                                    <?php $s_data = $result['sekolah_data']; ?>
+                                                    <?php $id_sekolah = $s_data['id_sekolah']; ?>
+                                                    <tr>
+                                                        <td><?php echo htmlspecialchars($s_data['nama_sekolah']); ?></td>
+                                                        <?php foreach ($kriteria_for_tables as $id_kriteria => $k_info): ?>
+                                                            <td>
+                                                                <?php
+                                                                $val = $original_data_matrix[$id_sekolah][$id_kriteria] ?? 'N/A';
+                                                                if ($id_kriteria == 1) { // Akreditasi
+                                                                    echo array_search($val, KRITERIA_SAW[1]['options']) ?: $val;
+                                                                } elseif ($id_kriteria == 2) { // Biaya SPP
+                                                                    echo is_numeric($val) ? 'Rp ' . number_format($val, 0, ',', '.') : $val;
+                                                                } elseif ($id_kriteria == 3) { // Fasilitas
+                                                                    echo is_numeric($val) ? number_format($val, 0) : htmlspecialchars($val);
+                                                                } elseif ($id_kriteria == 4) { // Jarak
+                                                                    // Display distance in KM or Meter based on value
+                                                                    if (is_numeric($val)) {
+                                                                        if ($val < 1) {
+                                                                            echo number_format($val * 1000, 0) . ' Meter';
+                                                                        } else {
+                                                                            echo number_format($val, 3) . ' KM';
+                                                                        }
+                                                                    } else {
+                                                                        echo htmlspecialchars($val);
+                                                                    }
+                                                                } else {
+                                                                    echo is_numeric($val) ? number_format($val, 2) : htmlspecialchars($val);
+                                                                }
+                                                                ?>
+                                                            </td>
+                                                        <?php endforeach; ?>
+                                                    </tr>
+                                                <?php endforeach; ?>
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
+
                                 <div class="card mb-4">
                                     <div class="card-header"><i class="fas fa-compress-alt"></i> Matriks Ternormalisasi (R)</div>
                                     <div class="card-body table-responsive">
                                         <table class="table table-bordered table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Sekolah</th>
-                                                <?php foreach ($kriteria_for_tables as $k): ?><th><?php echo htmlspecialchars($k['nama_kriteria']); ?></th><?php endforeach; ?>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        <?php foreach ($ranking_results as $id_s => $res): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($res['sekolah_data']['nama_sekolah']); ?></td>
-                                                <?php foreach ($kriteria_for_tables as $id_k => $k_info): ?>
-                                                <td><?php echo number_format($normalisasi_matrix[$id_s][$id_k] ?? 0, 4); ?></td>
+                                            <thead>
+                                                <tr>
+                                                    <th>Sekolah</th>
+                                                    <?php foreach ($kriteria_for_tables as $k): ?>
+                                                        <th><?php echo htmlspecialchars($k['nama_kriteria']); ?></th>
+                                                    <?php endforeach; ?>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($ranking_results as $result): // Loop through ranked results 
+                                                ?>
+                                                    <?php $s_data = $result['sekolah_data']; ?>
+                                                    <?php $id_sekolah = $s_data['id_sekolah']; ?>
+                                                    <tr>
+                                                        <td><?php echo htmlspecialchars($s_data['nama_sekolah']); ?></td>
+                                                        <?php foreach ($kriteria_for_tables as $id_kriteria => $k_info): ?>
+                                                            <td><?php echo number_format($normalisasi_matrix[$id_sekolah][$id_kriteria] ?? 0, 4); ?></td>
+                                                        <?php endforeach; ?>
+                                                    </tr>
                                                 <?php endforeach; ?>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                        </tbody>
+                                            </tbody>
                                         </table>
                                     </div>
                                 </div>
-                                <div class="card">
-                                    <div class="card-header"><i class="fas fa-weight-hanging"></i> Matriks Terbobot (Y)</div>
+
+                                <div class="card mb-4">
+                                    <div class="card-header"><i class="fas fa-weight-hanging"></i> Matriks Ternormalisasi Terbobot (Y)</div>
                                     <div class="card-body table-responsive">
                                         <table class="table table-bordered table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Sekolah</th>
-                                                <?php foreach ($kriteria_for_tables as $k): ?><th><?php echo htmlspecialchars($k['nama_kriteria']); ?></th><?php endforeach; ?>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        <?php foreach ($ranking_results as $id_s => $res): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($res['sekolah_data']['nama_sekolah']); ?></td>
-                                                <?php foreach ($kriteria_for_tables as $id_k => $k_info): ?>
-                                                <td><?php echo number_format($terbobot_matrix[$id_s][$id_k] ?? 0, 4); ?></td>
+                                            <thead>
+                                                <tr>
+                                                    <th>Sekolah</th>
+                                                    <?php foreach ($kriteria_for_tables as $k): ?>
+                                                        <th><?php echo htmlspecialchars($k['nama_kriteria']); ?></th>
+                                                    <?php endforeach; ?>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($ranking_results as $result): // Loop through ranked results 
+                                                ?>
+                                                    <?php $s_data = $result['sekolah_data']; ?>
+                                                    <?php $id_sekolah = $s_data['id_sekolah']; ?>
+                                                    <tr>
+                                                        <td><?php echo htmlspecialchars($s_data['nama_sekolah']); ?></td>
+                                                        <?php foreach ($kriteria_for_tables as $id_kriteria => $k_info): ?>
+                                                            <td><?php echo number_format($terbobot_matrix[$id_sekolah][$id_kriteria] ?? 0, 4); ?></td>
+                                                        <?php endforeach; ?>
+                                                    </tr>
                                                 <?php endforeach; ?>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                        </tbody>
+                                            </tbody>
                                         </table>
                                     </div>
                                 </div>
@@ -475,54 +885,52 @@ $criterion_icons = [
         </div>
     </div>
 
-    <?php foreach ($ranking_results as $id_sekolah => $result): 
+    <?php foreach ($ranking_results as $id_sekolah => $result):
         $row = $result['sekolah_data'];
         $akreditasi_label = array_search($result['original_scores'][1], KRITERIA_SAW[1]['options']) ?: 'N/A';
         $badge_color = 'secondary';
-        if($akreditasi_label == 'A') $badge_color = 'success';
-        else if($akreditasi_label == 'B') $badge_color = 'primary';
-        else if($akreditasi_label == 'C') $badge_color = 'warning';
+        if ($akreditasi_label == 'A') $badge_color = 'success';
+        else if ($akreditasi_label == 'B') $badge_color = 'primary';
+        else if ($akreditasi_label == 'C') $badge_color = 'warning';
     ?>
-    <div class="modal fade" id="detailModal<?php echo $id_sekolah; ?>" tabindex="-1" aria-labelledby="detailModalLabel<?php echo $id_sekolah; ?>" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="detailModalLabel<?php echo $id_sekolah; ?>">Detail: <?php echo htmlspecialchars($row['nama_sekolah']); ?></h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-info-circle me-2 text-primary"></i>Informasi Umum</h6>
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item"><strong>Alamat:</strong> <?php echo htmlspecialchars($row['alamat']); ?></li>
-                                <li class="list-group-item"><strong>Total Guru:</strong> <?php echo htmlspecialchars($row['total_guru']); ?></li>
-                                <li class="list-group-item"><strong>Total Murid:</strong> <?php echo htmlspecialchars(number_format($row['total_murid_aktif'])); ?></li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-list-check me-2 text-primary"></i>Rincian Nilai Kriteria</h6>
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item"><strong>Akreditasi:</strong> <span class="badge bg-<?php echo $badge_color; ?>"><?php echo $akreditasi_label; ?></span></li>
-                                <li class="list-group-item"><strong>Biaya SPP:</strong> Rp <?php echo number_format($result['original_scores'][2], 0, ',', '.'); ?></li>
-                                <li class="list-group-item"><strong>Fasilitas:</strong> <?php echo number_format($result['original_scores'][3], 2); ?></li>
-                                <li class="list-group-item"><strong>Jarak:</strong> <?php echo ($result['original_scores'][4] < 1 ? number_format($result['original_scores'][4]*1000).' M' : number_format($result['original_scores'][4], 2).' KM'); ?></li>
-                                <li class="list-group-item"><strong>Program Unggulan:</strong> <?php echo number_format($result['original_scores'][5], 2); ?></li>
-                            </ul>
+        <div class="modal fade" id="detailModal<?php echo $id_sekolah; ?>" tabindex="-1" aria-labelledby="detailModalLabel<?php echo $id_sekolah; ?>" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="detailModalLabel<?php echo $id_sekolah; ?>">Detail: <?php echo htmlspecialchars($row['nama_sekolah']); ?></h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-info-circle me-2 text-primary"></i>Informasi Umum</h6>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item"><strong>Alamat:</strong> <?php echo htmlspecialchars($row['alamat']); ?></li>
+                                    <li class="list-group-item"><strong>Total Guru:</strong> <?php echo htmlspecialchars($row['total_guru']); ?></li>
+                                    <li class="list-group-item"><strong>Total Murid:</strong> <?php echo htmlspecialchars(number_format($row['total_murid_aktif'])); ?></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-list-check me-2 text-primary"></i>Rincian Nilai Kriteria</h6>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item"><strong>Akreditasi:</strong> <span class="badge bg-<?php echo $badge_color; ?>"><?php echo $akreditasi_label; ?></span></li>
+                                    <li class="list-group-item"><strong>Biaya SPP:</strong> Rp <?php echo number_format($result['original_scores'][2], 0, ',', '.'); ?></li>
+                                    <li class="list-group-item"><strong>Fasilitas:</strong> <?php echo number_format($result['original_scores'][3], 2); ?></li>
+                                    <li class="list-group-item"><strong>Jarak:</strong> <?php echo ($result['original_scores'][4] < 1 ? number_format($result['original_scores'][4] * 1000) . ' M' : number_format($result['original_scores'][4], 2) . ' KM'); ?></li>
+                                    <li class="list-group-item"><strong>Program Unggulan:</strong> <?php echo number_format($result['original_scores'][5], 2); ?></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     <?php endforeach; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.getElementById('printBtn').addEventListener('click', () => window.print());
-    </script>
 </body>
+
 </html>

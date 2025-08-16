@@ -15,7 +15,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // --- FUNGSI PENGAMBILAN DATA GABUNGAN (DIGUNAKAN UNTUK EXCEL DAN PDF) ---
-function getComprehensiveData($koneksi) {
+function getComprehensiveData($koneksi)
+{
     // Query untuk mengambil data gabungan dari sekolah dan kriteria
     $sql = "SELECT s.*, k.* FROM sekolah s LEFT JOIN kriteria k ON s.id_sekolah = k.id_sekolah ORDER BY s.nama_sekolah ASC";
     $result = mysqli_query($koneksi, $sql);
@@ -27,7 +28,8 @@ function getComprehensiveData($koneksi) {
 }
 
 // --- FUNGSI PERHITUNGAN RANKING SAW (DIGUNAKAN UNTUK EXCEL DAN PDF) ---
-function calculateRanking($data_lengkap) {
+function calculateRanking($data_lengkap)
+{
     // Definisi Kriteria SAW (bisa ditaruh di sini atau sebagai konstanta global)
     $kriteria_saw = [
         1 => ['nama' => 'Akreditasi', 'bobot' => 0.25, 'tipe' => 'benefit', 'options' => ['A' => 4, 'B' => 3, 'C' => 2]],
@@ -50,7 +52,7 @@ function calculateRanking($data_lengkap) {
             5 => (float)($d['nilai_program_unggulan'] ?? 0),
         ];
     }
-    
+
     $max_min_values = [];
     foreach ($kriteria_saw as $id_k => $k_info) {
         $column = array_column($original_matrix, $id_k);
@@ -73,7 +75,7 @@ function calculateRanking($data_lengkap) {
             else $normalized_scores[$id_s][$id_k] = ($val > 0) ? $max_min / $val : 0;
         }
     }
-    
+
     $final_scores = [];
     foreach ($data_lengkap as $id_s => $d) {
         $total = 0;
@@ -82,9 +84,9 @@ function calculateRanking($data_lengkap) {
         }
         $final_scores[$id_s] = $total;
     }
-    
+
     arsort($final_scores);
-    
+
     $ranked_data = [];
     $rank = 1;
     foreach ($final_scores as $id_s => $score) {
@@ -96,14 +98,24 @@ function calculateRanking($data_lengkap) {
 }
 
 // --- FUNGSI EXPORT KE EXCEL (XLSX) ---
-function exportToXlsx($data, $ranking) {
+function exportToXlsx($data, $ranking)
+{
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('Data Lengkap Sekolah');
 
     $headers = [
-        'Peringkat', 'Nama Sekolah', 'Alamat', 'Total Guru', 'Total Murid',
-        'Akreditasi', 'Biaya SPP (Rp)', 'Total Fasilitas', 'Jarak (KM)', 'Nilai Program Unggulan', 'Skor Akhir'
+        'Peringkat',
+        'Nama Sekolah',
+        'Alamat',
+        'Total Guru',
+        'Total Murid',
+        'Akreditasi',
+        'Biaya SPP (Rp)',
+        'Total Fasilitas',
+        'Jarak (KM)',
+        'Nilai Program Unggulan',
+        'Skor Akhir'
     ];
     $sheet->fromArray($headers, NULL, 'A1');
 
@@ -129,7 +141,7 @@ function exportToXlsx($data, $ranking) {
     foreach (range('A', $sheet->getHighestDataColumn()) as $col) {
         $sheet->getColumnDimension($col)->setAutoSize(true);
     }
-    
+
     $filename = 'data_lengkap_spk_' . date('Y-m-d') . '.xlsx';
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="' . $filename . '"');
@@ -140,27 +152,34 @@ function exportToXlsx($data, $ranking) {
 }
 
 // --- FUNGSI EXPORT KE PDF ---
-function exportToPdf($data, $ranking) {
+function exportToPdf($data, $ranking)
+{
     $options = new Options();
     $options->set('isHtml5ParserEnabled', true);
     $options->set('isRemoteEnabled', true);
     $dompdf = new Dompdf($options);
 
     $html = '<html><head><style>
-                body { font-family: sans-serif; font-size: 10px; }
+                body { font-family: sans-serif; font-size: 9px; } /* Ukuran font dikecilkan agar muat */
                 table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+                th, td { border: 1px solid #ddd; padding: 4px; text-align: left; word-wrap: break-word; }
                 th { background-color: #f2f2f2; }
-                h1 { text-align: center; }
+                h1 { text-align: center; font-size: 18px; }
             </style></head><body>';
     $html .= '<h1>Data Lengkap Peringkat Sekolah</h1>';
+
+    // PENYESUAIAN: Tambahkan header kolom yang hilang
     $html .= '<table><thead><tr>
                 <th>Peringkat</th>
                 <th>Nama Sekolah</th>
                 <th>Alamat</th>
+                <th>Total Guru</th>
+                <th>Total Murid</th>
                 <th>Akreditasi</th>
                 <th>Biaya SPP</th>
+                <th>Fasilitas</th>
                 <th>Jarak (KM)</th>
+                <th>Prog. Unggulan</th>
                 <th>Skor Akhir</th>
               </tr></thead><tbody>';
 
@@ -169,18 +188,24 @@ function exportToPdf($data, $ranking) {
                     <td>' . $row['peringkat'] . '</td>
                     <td>' . htmlspecialchars($row['nama_sekolah']) . '</td>
                     <td>' . htmlspecialchars($row['alamat']) . '</td>
+                    
+                    <td>' . htmlspecialchars($row['total_guru']) . '</td>
+                    <td>' . htmlspecialchars($row['total_murid_aktif']) . '</td>
+                    
                     <td>' . htmlspecialchars($row['akreditasi']) . '</td>
                     <td>Rp ' . number_format($row['biaya_spp']) . '</td>
-                    <td>' . number_format($row['jarak_jalan_raya'], 2) . '</td>
+                    <td>' . number_format($row['total_fasilitas']) . '</td>
+                    <td>' . number_format($row['jarak_jalan_raya'], 3) . '</td>
+                    <td>' . number_format($row['nilai_program_unggulan'], 2) . '</td>
                     <td>' . number_format($row['total_skor'], 4) . '</td>
                   </tr>';
     }
     $html .= '</tbody></table></body></html>';
 
     $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'landscape');
+    $dompdf->setPaper('A4', 'landscape'); // Mode landscape agar lebih lebar
     $dompdf->render();
-    
+
     $filename = 'data_lengkap_spk_' . date('Y-m-d') . '.pdf';
     $dompdf->stream($filename, ['Attachment' => 1]);
     exit();
@@ -203,6 +228,7 @@ require_once 'navbar.php';
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -210,10 +236,17 @@ require_once 'navbar.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background-color: #f8f9fc; font-family: 'Nunito', sans-serif; }
-        .card { box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); }
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        .card {
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
     </style>
 </head>
+
 <body>
     <div class="container-fluid py-4">
         <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-file-export me-2"></i>Export Data</h1>
@@ -233,7 +266,7 @@ require_once 'navbar.php';
                         <p class="text-muted">
                             Pilih format file untuk mengunduh gabungan semua data sekolah, penilaian, dan hasil ranking dalam satu dokumen.
                         </p>
-                        
+
                         <form method="post" class="d-inline-flex flex-wrap justify-content-center gap-2 mt-3">
                             <button type="submit" name="export_xlsx" class="btn btn-success btn-lg">
                                 <i class="fas fa-file-excel me-2"></i> Export ke Excel (.xlsx)
@@ -253,8 +286,47 @@ require_once 'navbar.php';
             </div>
         </div>
     </div>
-    
+
     <?php require_once 'footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function confirmLogout(event) {
+            event.preventDefault();
+
+            const modalId = 'logoutModal';
+            if (document.getElementById(modalId)) return;
+
+            const confirmBox = document.createElement('div');
+            confirmBox.className = 'modal fade';
+            confirmBox.id = modalId;
+            confirmBox.setAttribute('tabindex', '-1');
+            confirmBox.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Konfirmasi Keluar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin keluar dari aplikasi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <a href="../logout.php" class="btn btn-danger">Yakin</a>
+                </div>
+            </div>
+        </div>
+    `;
+            document.body.appendChild(confirmBox);
+
+            const modal = new bootstrap.Modal(confirmBox);
+            modal.show();
+
+            confirmBox.addEventListener('hidden.bs.modal', () => {
+                confirmBox.remove();
+            });
+        }
+    </script>
 </body>
+
 </html>
